@@ -8,6 +8,19 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36'
 }
 
+def parse_cookies(cookie_string):
+    """
+    Convert full cookie string into a dictionary
+    Example input: 'datr=f-SbaIC_HCy3-ykfT8_Fmndl; c_user=61579086552462; xs=...'
+    """
+    cookies = {}
+    parts = cookie_string.split(';')
+    for part in parts:
+        if '=' in part:
+            name, value = part.strip().split('=', 1)
+            cookies[name] = value
+    return cookies
+
 def share_post(post_id, cookies):
     url = 'https://graph.facebook.com/me/feed'
     params = {
@@ -26,24 +39,15 @@ def share_post(post_id, cookies):
         print(f"Share error: {e}")
 
 if __name__ == '__main__':
-    # Ask user to enter cookies
-    print("Enter your Facebook cookies:")
-    c_user = input("c_user: ").strip()
-    datr = input("datr: ").strip()
-    xs = input("xs: ").strip()
-
-    COOKIES = {
-        'c_user': c_user,
-        'datr': datr,
-        'xs': xs
-    }
+    cookie_string = input("Enter full Facebook cookie string: ").strip()
+    cookies = parse_cookies(cookie_string)
 
     post_id = input("Enter Facebook post ID to share: ").strip()
     times = int(input("Number of times to share: "))
     delay = float(input("Delay between shares (seconds): "))
 
     for i in range(times):
-        share_post(post_id, COOKIES)
+        share_post(post_id, cookies)
         time.sleep(delay)
 
     print("\nAll done sharing!")
