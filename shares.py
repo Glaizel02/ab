@@ -63,7 +63,7 @@ def extract_ids(url):
     group_match = re.search(group_pattern, url)
     post_match = re.search(post_pattern, url)
     photo_match = re.search(photo_pattern, url)
-    video_match = re.search(video_match, url)
+    video_match = re.search(video_pattern, url)
 
     if group_match:
         return f"{group_match.group(2)}"
