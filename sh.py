@@ -1,146 +1,130 @@
-import os
+
+import requests
 import time
-import yaml
-from termcolor import colored
-from prettytable import PrettyTable
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+import os
+import hashlib
+import uuid
+import random
+import string
+from colorama import Fore, Style, init
+from rich.panel import Panel
+from rich.console import Console
 
-ACCOUNTS_FILE = "accounts.txt"
-COOKIES_DIR = "cookies"
-WAIT_TIME = 3
+# Initialize colorama
+init()
+console = Console()
 
-os.makedirs(COOKIES_DIR, exist_ok=True)
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-def save_cookies(driver, uid):
-    cookies = driver.get_cookies()
-    with open(os.path.join(COOKIES_DIR, f"{uid}.yml"), "w") as f:
-        yaml.safe_dump(cookies, f)
+def display_banner(title):
+    console.print(Panel(
+        f"""
+[cyan]     __    _   _ _   ___ 
+[cyan]    / _||  _ \| | | | |  _ \| __|
+[cyan]    \___ \| |_) | |_| |  _| | |_) |  _|  
+[cyan]     _) |  /|  _  | |_|  _ <| |_ 
+[cyan]    |__/|_|   |_| |_|_|_| \_\___|
+        """,
+        title=f"[green]●[yellow] {title} [/]",
+        width=65,
+        style="bold bright_white",
+    ))
 
-def load_cookies(driver, uid):
-    cookie_file = os.path.join(COOKIES_DIR, f"{uid}.yml")
-    if not os.path.exists(cookie_file):
-        return False
-    with open(cookie_file, "r") as f:
-        cookies = yaml.safe_load(f)
-    for cookie in cookies:
-        driver.add_cookie(cookie)
-    return True
-
-def log_status(uid, message, status_type="info"):
-    if status_type == "success":
-        print(colored("[SUCCESS]", "green"), uid, "-", message)
-    elif status_type == "fail":
-        print(colored("[FAILED]", "red"), uid, "-", message)
-    else:
-        print(colored("[INFO]", "cyan"), uid, "-", message)
-
-def perform_action(account, action, target, quantity):
-    uid, password = account.split("|")
-
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(options=options)
-
-    try:
-        driver.get("https://www.facebook.com")
-        logged_in = load_cookies(driver, uid)
-        driver.get("https://www.facebook.com")
-        time.sleep(WAIT_TIME / 2)
-
-        if not logged_in:
-            driver.get("https://www.facebook.com/login")
-            time.sleep(WAIT_TIME)
-            try:
-                driver.find_element(By.ID, "email").send_keys(uid)
-                driver.find_element(By.ID, "pass").send_keys(password)
-                driver.find_element(By.NAME, "login").click()
-            except:
-                log_status(uid, "Login page elements not found", "fail")
-                return
-            time.sleep(WAIT_TIME * 2)
-
-            page_source = driver.page_source.lower()
-            current_url = driver.current_url.lower()
-
-            if "checkpoint" in current_url:
-                if "enter code" in page_source or "confirmation code" in page_source:
-                    log_status(uid, "2FA required", "fail")
-                else:
-                    log_status(uid, "Checkpoint verification", "fail")
-                return
-            elif "disabled" in page_source or "account has been disabled" in page_source:
-                log_status(uid, "Account disabled", "fail")
-                return
-            elif "incorrect" in page_source or "invalid" in page_source:
-                log_status(uid, "Wrong credentials", "fail")
-                return
-            else:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, '[aria-label="Facebook"]')
-                    log_status(uid, "Login success", "success")
-                    save_cookies(driver, uid)
-                except:
-                    log_status(uid, "Login verification failed", "fail")
-                    return
+def main_menu():
+    while True:
+        clear_screen()
+        display_banner("FACEBOOK TOOL")
+        console.print(Panel(
+            """
+[green]1. Spam Share
+[green]2. Token Getter
+[red]3. Exit
+            """,
+            width=65,
+            style="bold bright_white",
+        ))
+        choice = input("Select an option: ")
+        
+        if choice == "1":
+            spam_share()
+        elif choice == "2":
+            token_getter()
+        elif choice == "3":
+            console.print("[red]Exiting...")
+            break
         else:
-            log_status(uid, "Logged in using cookies", "success")
+            console.print("[red]Invalid choice! Try again.")
+            time.sleep(2)
 
-        table = PrettyTable(["#", "Action", "Status"])
-        for i in range(quantity):
-            time.sleep(1)
-            try:
-                if action == "share":
-                    driver.get(target)
-                    time.sleep(WAIT_TIME)
-                    driver.find_element(By.XPATH, "//span[contains(text(), 'Share')]").click()
-                    time.sleep(WAIT_TIME / 2)
-                    driver.find_element(By.XPATH, "//span[contains(text(), 'Share Now')]").click()
-                    table.add_row([i+1, "Share", "✅"])
-                elif action == "react":
-                    driver.get(target)
-                    time.sleep(WAIT_TIME)
-                    driver.find_element(By.XPATH, "//span[contains(text(), 'Like')]").click()
-                    table.add_row([i+1, "React", "✅"])
-                elif action == "follow":
-                    driver.get(target)
-                    time.sleep(WAIT_TIME)
-                    driver.find_element(By.XPATH, "//div[contains(text(), 'Follow')]").click()
-                    table.add_row([i+1, "Follow", "✅"])
-                elif action == "comment":
-                    driver.get(target)
-                    time.sleep(WAIT_TIME)
-                    driver.find_element(By.XPATH, "//span[contains(text(), 'Comment')]").click()
-                    time.sleep(WAIT_TIME / 2)
-                    comment_field = driver.find_element(By.CSS_SELECTOR, 'div[aria-label="Write a comment"]')
-                    comment_field.send_keys(f"Boosted! 🔥 {i+1}")
-                    comment_field.send_keys(u'\ue007')  # Enter key
-                    table.add_row([i+1, "Comment", "✅"])
-            except Exception as e:
-                table.add_row([i+1, action.capitalize(), f"❌ {e}"])
+def spam_share():
+    clear_screen()
+    display_banner("SPAM SHARE")
+    access_token = input("Enter your access token: ")
+    share_url = input("Enter your post link: ")
+    share_count = int(input("Enter Share Count: "))
+    time_interval = 0.5
+    shared_count = 0
 
-        print(table)
+    def share_post():
+        nonlocal shared_count
+        url = f"https://graph.facebook.com/me/feed?access_token={access_token}"
+        data = {"link": share_url, "privacy": {"value": "SELF"}, "no_story": "true"}
+        headers = {"User-Agent": "Mozilla/5.0"}
+        
+        try:
+            response = requests.post(url, json=data, headers=headers)
+            response_data = response.json()
+            post_id = response_data.get("id", "Unknown")
+            shared_count += 1
+            console.print(f"[green]Post shared: {shared_count}")
+            console.print(f"[cyan]Post ID: {post_id}")
+        except requests.exceptions.RequestException as e:
+            console.print(f"[red]Failed to share post: {e}")
 
-    except Exception as e:
-        log_status(uid, f"Error: {e}", "fail")
-    finally:
-        driver.quit()
+    for _ in range(share_count):
+        share_post()
+        time.sleep(time_interval)
+    console.print("[green]Finished sharing posts.")
+    input("\n[bold yellow]Press Enter to return to the main menu...[/bold yellow]")
 
-# Load accounts
-try:
-    with open(ACCOUNTS_FILE, "r") as f:
-        accounts = [line.strip() for line in f if line.strip()]
-    if not accounts:
-        print(colored("Error: accounts.txt is empty", "red"))
-        exit()
-except FileNotFoundError:
-    print(colored(f"Error: {ACCOUNTS_FILE} not found", "red"))
-    print(colored("Create it with uid|pass per line", "yellow"))
-    exit()
+def token_getter():
+    clear_screen()
+    display_banner("TOKEN GETTER")
+    email = input("Enter your email: ")
+    password = input("Enter your password: ")
+    twofactor_code = input("Enter your 2-factor authentication code (Enter '0' if not applicable): ")
 
-# Example usage
-# perform_action("email@example.com|password123", "share", "https://facebook.com/postlink", 2)
+    result = make_request(email, password, twofactor_code)
+    console.print(f"\n[bold green]Access Token: {result}[/bold green]")
+    input("\n[bold yellow]Press Enter to return to the main menu...[/bold yellow]")
+
+def make_request(email, password, twofactor_code):
+    deviceID = str(uuid.uuid4())
+    adid = str(uuid.uuid4())
+    random_str = ''.join(random.choice(string.ascii_lowercase + "0123456789") for _ in range(24))
+
+    form = {
+        'adid': adid,
+        'email': email,
+        'password': password,
+        'format': 'json',
+        'device_id': deviceID,
+        'locale': 'en_US',
+        'api_key': '882a8490361da98702bf97a021ddc14d',
+        'access_token': '350685531728%7C62f8ce9f74b12f84c123cc23437a4a32',
+    }
+    form['sig'] = hashlib.md5(("".join(f"{k}={form[k]}" for k in sorted(form)) + '62f8ce9f74b12f84c123cc23437a4a32').encode()).hexdigest()
+    headers = { 'content-type': 'application/x-www-form-urlencoded' }
+    url = 'https://b-graph.facebook.com/auth/login'
+    
+    try:
+        response = requests.post(url, data=form, headers=headers)
+        response_json = response.json()
+        return response_json.get("access_token", "Failed to retrieve access token")
+
+except Exception as e:
+        return "Error: Please check your account and password again!"
+
+if name == 'main':
+    main_menu()
