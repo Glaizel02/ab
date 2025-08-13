@@ -2,38 +2,104 @@ import sys
 import time
 import requests
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
-# Color codes
-green  = "\033[92m"
-blue   = "\033[94m"
+# Colors
+green = "\033[92m"
+blue = "\033[94m"
 yellow = "\033[93m"
-red    = "\033[91m"
-purple = "\033[95m"
-cyan   = "\033[96m"
-gray   = "\033[38;2;200;200;200m"
-reset  = "\033[0m"
+red = "\033[91m"
+gray = "\033[38;2;233;233;233m"
+reset = "\033[0m"
 
 API_KEY = "62f8ce9f74b12f84c123cc23437a4a32"
-FB_URL  = "https://graph.facebook.com/v13.0/me/feed"
+FB_URL = "https://graph.facebook.com/v13.0/me/feed"
 
 def clear_screen():
     print("\033c", end="")
 
-def virus_banner():
-    print(f"""{purple}
-╔════════════════════════════════════════════════════════════════════════╗
-║{red}   ██▒   █▓ ██▓ ███▄ ▄███▓ ▒█████    ██████   ██████  ██▓ {purple}║
-║{red}  ▓██░   █▒▓██▒▓██▒▀█▀ ██▒▒██▒  ██▒▒██    ▒ ▒██    ▒ ▓██▒ {purple}║
-║{red}   ▓██  █▒░▒██▒▓██    ▓██░▒██░  ██▒░ ▓██▄   ░ ▓██▄   ▒██▒ {purple}║
-║{red}    ▒██ █░░░██░▒██    ▒██ ▒██   ██░  ▒   ██▒  ▒   ██▒░██░ {purple}║
-║{red}     ▒▀█░  ░██░▒██▒   ░██▒░ ████▓▒░▒██████▒▒▒██████▒▒░██░ {purple}║
-║{green}        ✦✦ FACEBOOK AUTO SHARE TOOL - VIRUS EDITION ✦✦      {purple}║
-║{blue}                  API KEY: {yellow}{API_KEY}                    {purple}║
-╚════════════════════════════════════════════════════════════════════════╝
-{reset}""")
+def jovan():
+    print(f"""{blue}
+    ╔══════════════════════════════════════════════════════╗
+    ║         {green}Facebook Auto Share Tool{blue}                 ║
+    ╠══════════════════════════════════════════════════════╣
+    ║   {yellow}API KEY:{gray} {API_KEY}                     {blue}║
+    ╚══════════════════════════════════════════════════════╝
+    {reset}""")
 
-def post_to_facebook(token, post_id, share_number):
+def post_to_facebook(token, post_id):
+    try:
+        payload = {
+            'link': f"https://www.facebook.com/{post_id}",
+            'published': '0',
+            'privacy': '{"value":"SELF"}',
+            'access_token': token
+        }
+        r = requests.post(FB_URL, data=payload)
+        return r.status_code == 200
+    except:
+        return False
+
+def shar():
+    clear_screen()
+    jovan()
+
+    # Inputs
+    access_tokens = input(f"{green}Enter Access Tokens (comma separated): {gray}").split(',')
+    print(f"{blue}{'─'*70}{reset}")
+
+    post_id = input(f"{green}Enter Post ID: {gray}")
+    print(f"{blue}{'─'*70}{reset}")
+
+    total_share = int(input(f"{green}How Many Shares: {gray}"))
+    print(f"{blue}{'─'*70}{reset}")
+
+    delay = int(input(f"{green}Delay Between Shares (sec): {gray}"))
+    print(f"{blue}{'─'*70}{reset}")
+
+    # Clean tokens
+    access_tokens = [t.strip() for t in access_tokens if t.strip()]
+    total_live = len(access_tokens)
+
+    print(f"{green}Live Tokens: {gray}{total_live}{reset}")
+    if total_live == 0:
+        sys.exit(f"{red}[!] No valid tokens entered. Exiting...{reset}")
+
+    # Record start time
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{yellow}[*] Start Time: {gray}{start_time}{reset}")
+    print(f"{yellow}[*] Starting share process...{reset}")
+
+    stt = 0
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        while stt < total_share:
+            for token in access_tokens:
+                if stt >= total_share:
+                    break
+                stt += 1
+                executor.submit(post_to_facebook, token, post_id)
+
+                # Fancy progress design
+                progress_bar = "█" * (stt % 20) + "-" * (20 - (stt % 20))
+                sys.stdout.write(
+                    f"\r{blue}╔═[{green}SHARE PROGRESS{blue}]════════════════════════════════╗\n"
+                    f"{blue}║ {green}Share Count:{gray} {stt}/{total_share}                       {blue}║\n"
+                    f"{blue}║ {green}Status:{gray} {'SUCCESS' if stt % 2 == 0 else 'PENDING'}                        {blue}║\n"
+                    f"{blue}║ {green}Progress:{yellow} [{progress_bar}{yellow}] {int((stt/total_share)*100)}% {blue}║\n"
+                    f"{blue}╚════════════════════════════════════════════════════════╝{reset}"
+                )
+                sys.stdout.flush()
+                time.sleep(delay)
+
+    # Record end time
+    end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"\n\n{green}[*] Done! {stt} shares attempted.{reset}")
+    print(f"{yellow}[*] End Time: {gray}{end_time}{reset}")
+
+    input(f"{green}Press Enter to exit...{reset}")
+
+if __name__ == "__main__":
+    shar()
     try:
         payload = {
             'link': f"https://www.facebook.com/{post_id}",
