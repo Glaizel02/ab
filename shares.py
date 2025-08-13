@@ -1,39 +1,90 @@
-import sys
-import time
-import json
 import requests
+import json
+import time
+import os
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Color codes
-green  = "\033[92m"
-blue   = "\033[94m"
-yellow = "\033[93m"
-red    = "\033[91m"
-purple = "\033[95m"
-cyan   = "\033[96m"
-gray   = "\033[38;2;200;200;200m"
-reset  = "\033[0m"
-
-FB_SHARE_URL = "https://m.facebook.com/composer/ocelot/async_loader/?publisher=feed"
+# Colors
+GREEN = "\033[1;92m"
+RED = "\033[1;91m"
+BLUE = "\033[1;94m"
+CYAN = "\033[1;96m"
+YELLOW = "\033[1;93m"
+RESET = "\033[0m"
 
 def clear_screen():
-    print("\033c", end="")
+    os.system("clear" if os.name == "posix" else "cls")
 
-def virus_banner():
-    print(f"""{purple}
-╔════════════════════════════════════════════════════════════════════════╗
-║{red}   ██▒   █▓ ██▓ ███▄ ▄███▓ ▒█████    ██████   ██████  ██▓ {purple}║
-║{red}  ▓██░   █▒▓██▒▓██▒▀█▀ ██▒▒██▒  ██▒▒██    ▒ ▒██    ▒ ▓██▒ {purple}║
-║{red}   ▓██  █▒░▒██▒▓██    ▓██░▒██░  ██▒░ ▓██▄   ░ ▓██▄   ▒██▒ {purple}║
-║{red}    ▒██ █░░░██░▒██    ▒██ ▒██   ██░  ▒   ██▒  ▒   ██▒░██░ {purple}║
-║{red}     ▒▀█░  ░██░▒██▒   ░██▒░ ████▓▒░▒██████▒▒▒██████▒▒░██░ {purple}║
-║{green}        ✦✦ FACEBOOK AUTO SHARE TOOL - VIRUS EDITION ✦✦      {purple}║
-╚════════════════════════════════════════════════════════════════════════╝
-{reset}""")
+def banner():
+    print(f"""{RED}
+    ███████╗██╗   ██╗██████╗ ██╗███████╗███████╗
+    ██╔════╝██║   ██║██╔══██╗██║██╔════╝██╔════╝
+    ███████╗██║   ██║██████╔╝██║█████╗  ███████╗
+    ╚════██║██║   ██║██╔═══╝ ██║██╔══╝  ╚════██║
+    ███████║╚██████╔╝██║     ██║███████╗███████║
+    ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝
+    {YELLOW}        Facebook Auto Share - VIRUS EDITION
+    {RESET}
+    """)
 
-def fbstate_to_cookies(fbstate_str):
+def fbstate_to_cookie_string(fbstate_json):
     try:
+        fbstate = json.loads(fbstate_json)
+        cookies = "; ".join([f"{item['name']}={item['value']}" for item in fbstate])
+        return cookies
+    except Exception as e:
+        print(RED + f"[ERROR] Invalid FBSTATE format: {e}" + RESET)
+        return None
+
+def share_post(cookie_string, post_id):
+    url = f"https://m.facebook.com/composer/ocelot/async_loader/?publisher=feed"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": cookie_string
+    }
+
+    # Dummy payload for example - real payload may differ
+    payload = {
+        "message": "Shared via Virus Edition Script",
+        "post_id": post_id
+    }
+
+    try:
+        r = requests.post(url, headers=headers, data=payload)
+        if r.status_code == 200:
+            print(f"{GREEN}SUCCESSFULLY SHARED, -----------------------------{RESET}")
+        else:
+            print(f"{RED}FAILED ({r.status_code}){RESET}")
+    except Exception as e:
+        print(f"{RED}ERROR: {e}{RESET}")
+
+def main():
+    clear_screen()
+    banner()
+
+    print(CYAN + "Paste your FBSTATE JSON below (single line) then press Enter:" + RESET)
+    fbstate_json = input("> ")
+
+    cookie_string = fbstate_to_cookie_string(fbstate_json)
+    if not cookie_string:
+        return
+
+    post_id = input(YELLOW + "Enter Facebook Post ID: " + RESET)
+    count = int(input(YELLOW + "How many times to share? " + RESET))
+
+    start_time = datetime.now()
+    print(BLUE + f"\n[START] {start_time.strftime('%Y-%m-%d %H:%M:%S')}" + RESET)
+
+    for i in range(count):
+        share_post(cookie_string, post_id)
+        time.sleep(3)  # Delay per share
+
+    end_time = datetime.now()
+    print(BLUE + f"\n[END] {end_time.strftime('%Y-%m-%d %H:%M:%S')}" + RESET)
+
+if __name__ == "__main__":
+    main()
         fbstate_json = json.loads(fbstate_str)
         cookie_dict = {}
         for item in fbstate_json:
