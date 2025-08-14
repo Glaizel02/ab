@@ -87,25 +87,7 @@ class FounderClone:
                 nama = nama.lower()
                 depan = nama.split(' ')[0] if " " in nama else nama
                 pasw = []
-              if len(nama) < 6:
-    if len(depan) >= 3:
-        pasw += [
-            nama,
-            depan + "12", depan + "123", depan + "123",
-            depan + "12345", depan + "123456", depan + "321",
-            depan + "01", depan + "02", depan + "03",
-            depan + "04", depan + "05", depan + "06", depan + "07"
-        ]
-    else:
-        pasw += [
-            nama,
-            depan + "12", depan + "123", depan + "123",
-            depan + "12345", depan + "123456", depan + "321",
-            depan + "01", depan + "02", depan + "03",
-            depan + "04", depan + "05", depan + "06", depan + "07"
-        ]
-
-eksekutor.submit(self._FounderClone_validate, uid, pasw)
+             if len(nama) < 6: if len(depan) >= 3: pasw += [nama, depan + "12", depan + "123", depan + "123", depan + "12345", depan + "123456", depan + "321", depan + "01", depan + "02", depan + "03", depan + "04", depan + "05", depan + "06", depan + "07"] else: pasw += [nama, depan + "12", depan + "123", depan + "123", depan + "12345", depan + "123456", depan + "321", depan + "01", depan + "02", depan + "03", depan + "04", depan + "05", depan + "06", depan + "07"] eksekutor.submit(self._FounderClone_validate, uid, pasw)
 
     # Fungsi untuk validasi login
     def _FounderClone_validate(self, uid, pasw):
